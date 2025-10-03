@@ -107,6 +107,9 @@ logs/
 # blueprints (development work - not committed to public repo)
 blueprints/
 
+# GitHub workflows (proposal phase - kept locally for reference)
+.github/workflows/
+
 # GitHub security summaries
 .github/FORTIFY_SUMMARY.md
 
