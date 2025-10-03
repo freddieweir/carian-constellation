@@ -1,0 +1,28 @@
+# Gitleaks ignore file for false positives
+# Format: <file>:<rule-id>:<commit-sha>
+
+# Template files are intentionally generic
+**/*.template:*
+**/*.example:*
+
+# Terraform variable examples
+*.tfvars.example:*
+
+# GitHub Actions workflow files may contain detection patterns
+.github/workflows/*.yml:*
+
+# Documentation files with example domains
+*.md:domain-exposure
+README.md:*
+
+# Kubernetes manifests with External Secret references
+blueprints/kubernetes/secrets/*.yaml:*
+
+# Terraform backend configuration (no actual secrets)
+blueprints/terraform/**/backend.tf:*
+
+# Allow AWS ARN patterns (not actual credentials)
+*:aws-arn-pattern
+
+# Allow Tailscale key format examples
+docs/*.md:tailscale-auth-key

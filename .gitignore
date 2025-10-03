@@ -35,3 +35,114 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# AWS and Kubernetes sensitive files
+*.pem
+*.key
+*.crt
+kubeconfig
+kubeconfig.yaml
+.kube/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Terraform plan outputs
+*.tfplan
+*.tfplan.json
+plan.txt
+plan.json
+plan.binary
+
+# Pre-commit artifacts
+.pre-commit-config-local.yaml
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Python virtual environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Cost estimation and reports
+cost-estimate*.md
+compliance-report*.txt
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+.terraform.lock.info
+
+# AWS credentials
+credentials
+config
+.aws/credentials
+.aws/config
+
+# Kubernetes secrets (use External Secrets instead)
+*secret*.yaml
+!*secret*.yaml.template
+!external-secret*.yaml
+
+# 1Password CLI cache
+.op/
+
+# Logs
+*.log
+logs/
+.tomb-yubikey-verifications.log
+
+# blueprints (development work - not committed to public repo)
+blueprints/
+
+# GitHub workflows (proposal phase - kept locally for reference)
+.github/workflows/
+
+# GitHub security summaries
+.github/FORTIFY_SUMMARY.md
+
+# Claude AI agent context (contains actual domains/secrets)
+CLAUDE.md
+.claude/
+
+# Terraform backend configuration files (may contain sensitive data)
+backend.hcl
+*.backend.hcl
+
+# Cost estimation outputs
+cost-estimate*.json
+cost-estimate*.html
+
+# Local testing outputs
+test-output/
+.test/
+
+# Backup archives (large files)
+*.tar.gz
+*.zip
+backups/
+
+# Kubernetes generated files
+kubernetes/**/generated/
+kubernetes/**/*-secret.yaml
+!kubernetes/**/*-external-secret.yaml
+
+# Script outputs
+scripts/**/*.output
+scripts/**/*.log
+
+# Private notes (personal interview prep, strategy, etc.)
+notes/
+!notes/README.md
