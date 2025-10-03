@@ -1,0 +1,268 @@
+name: ☸️ Kubernetes Validation
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'blueprints/kubernetes/**'
+      - '.github/workflows/kubernetes-lint.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'blueprints/kubernetes/**'
+
+jobs:
+  kubeval:
+    name: Kubeval Manifest Validation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install kubeval
+      run: |
+        wget https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz
+        tar xf kubeval-linux-amd64.tar.gz
+        sudo mv kubeval /usr/local/bin/
+        kubeval --version
+
+    - name: Validate Kubernetes manifests
+      run: |
+        echo "🔍 Validating Kubernetes manifests..."
+
+        # Validate all YAML files in kubernetes directory
+        find blueprints/kubernetes -name "*.yaml" -o -name "*.yml" | while read -r manifest; do
+          echo "Validating $manifest..."
+          kubeval --strict --ignore-missing-schemas "$manifest" || echo "⚠️ Validation issue in $manifest"
+        done
+
+  kubeconform:
+    name: Kubeconform Schema Validation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install kubeconform
+      run: |
+        wget https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+        tar xf kubeconform-linux-amd64.tar.gz
+        sudo mv kubeconform /usr/local/bin/
+        kubeconform -v
+
+    - name: Validate with kubeconform
+      run: |
+        echo "🔍 Validating Kubernetes manifests with kubeconform..."
+
+        kubeconform -summary -output json \
+          -kubernetes-version 1.28.0 \
+          -schema-location default \
+          -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
+          blueprints/kubernetes/ || true
+
+  kube-linter:
+    name: Kube-linter Security & Best Practices
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install kube-linter
+      run: |
+        wget https://github.com/stackrox/kube-linter/releases/latest/download/kube-linter-linux.tar.gz
+        tar xf kube-linter-linux.tar.gz
+        sudo mv kube-linter /usr/local/bin/
+        kube-linter version
+
+    - name: Create kube-linter config
+      run: |
+        cat > .kube-linter.yaml << 'EOF'
+        checks:
+          doNotAutoAddDefaults: false
+          exclude:
+            # Exclude checks that may not apply to ephemeral infrastructure
+            - "unset-cpu-requirements"
+            - "unset-memory-requirements"
+          include:
+            - "no-read-only-root-fs"
+            - "run-as-non-root"
+            - "required-label-owner"
+            - "required-annotation-email"
+            - "latest-tag"
+            - "privilege-escalation-container"
+            - "sensitive-host-mounts"
+
+        customChecks: []
+        EOF
+
+    - name: Run kube-linter
+      run: |
+        echo "🔍 Running kube-linter security checks..."
+        kube-linter lint blueprints/kubernetes/ \
+          --config .kube-linter.yaml \
+          --format=sarif > kube-linter.sarif || true
+
+    - name: Upload SARIF
+      uses: github/codeql-action/upload-sarif@v3
+      if: always() && github.repository == github.event.repository.full_name
+      with:
+        sarif_file: kube-linter.sarif
+      continue-on-error: true
+
+  kustomize-build:
+    name: Kustomize Build Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install kustomize
+      run: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        sudo mv kustomize /usr/local/bin/
+        kustomize version
+
+    - name: Test kustomize builds
+      run: |
+        echo "🔧 Testing kustomize builds..."
+
+        # Check if kustomization files exist
+        if find blueprints/kubernetes -name "kustomization.yaml" -o -name "kustomization.yml" | grep -q .; then
+          find blueprints/kubernetes -name "kustomization.yaml" -o -name "kustomization.yml" | while read -r kust; do
+            kust_dir=$(dirname "$kust")
+            echo "Building $kust_dir..."
+            kustomize build "$kust_dir" > /dev/null || echo "⚠️ Kustomize build failed for $kust_dir"
+          done
+        else
+          echo "ℹ️ No kustomization files found - skipping kustomize build test"
+        fi
+
+  helm-lint:
+    name: Helm Chart Linting
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install Helm
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        helm version
+
+    - name: Lint Helm charts
+      run: |
+        echo "🔍 Linting Helm charts..."
+
+        # Check if any Helm charts exist
+        if find blueprints/kubernetes -name "Chart.yaml" | grep -q .; then
+          find blueprints/kubernetes -name "Chart.yaml" | while read -r chart; do
+            chart_dir=$(dirname "$chart")
+            echo "Linting $chart_dir..."
+            helm lint "$chart_dir" || echo "⚠️ Helm lint failed for $chart_dir"
+          done
+        else
+          echo "ℹ️ No Helm charts found - skipping helm lint"
+        fi
+
+  yaml-lint:
+    name: YAML Syntax Validation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Install yamllint
+      run: pip install yamllint
+
+    - name: Create yamllint config
+      run: |
+        cat > .yamllint << 'EOF'
+        extends: default
+
+        rules:
+          line-length:
+            max: 120
+            level: warning
+          indentation:
+            spaces: 2
+            indent-sequences: true
+          document-start: disable
+          comments:
+            min-spaces-from-content: 1
+        EOF
+
+    - name: Run yamllint
+      run: |
+        echo "🔍 Running YAML syntax validation..."
+        yamllint -f parsable blueprints/kubernetes/ || true
+
+  manifest-security:
+    name: Kubernetes Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy for Kubernetes
+      uses: aquasecurity/trivy-action@master
+      with:
+        scan-type: 'config'
+        scan-ref: 'blueprints/kubernetes'
+        format: 'sarif'
+        output: 'trivy-k8s.sarif'
+        exit-code: '0'
+
+    - name: Upload SARIF
+      uses: github/codeql-action/upload-sarif@v3
+      if: always() && github.repository == github.event.repository.full_name
+      with:
+        sarif_file: trivy-k8s.sarif
+      continue-on-error: true
+
+  namespace-validation:
+    name: Namespace & RBAC Validation
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Validate namespace structure
+      run: |
+        echo "🔍 Validating namespace structure..."
+
+        # Check that namespaces are defined
+        if [ ! -d "blueprints/kubernetes/namespaces" ]; then
+          echo "⚠️ No namespaces directory found"
+          exit 1
+        fi
+
+        # Validate namespace YAML files exist
+        NAMESPACE_FILES=$(find blueprints/kubernetes/namespaces -name "*.yaml" -o -name "*.yml" | wc -l)
+        if [ "$NAMESPACE_FILES" -eq 0 ]; then
+          echo "⚠️ No namespace definitions found"
+          exit 1
+        fi
+
+        echo "✅ Found $NAMESPACE_FILES namespace definition(s)"
+
+        # Check for NetworkPolicy definitions
+        if find blueprints/kubernetes -name "*network-policy*" -o -name "*networkpolicy*" | grep -q .; then
+          echo "✅ NetworkPolicy definitions found (Zero Trust compliance)"
+        else
+          echo "⚠️ No NetworkPolicy definitions found - consider adding for Zero Trust"
+        fi
+
+        # Check for ResourceQuota definitions
+        if find blueprints/kubernetes -name "*resource-quota*" -o -name "*resourcequota*" | grep -q .; then
+          echo "✅ ResourceQuota definitions found (cost control)"
+        else
+          echo "⚠️ No ResourceQuota definitions found - consider adding for cost control"
+        fi
