@@ -85,9 +85,6 @@ compliance-report*.txt
 *.backup
 .terraform.lock.info
 
-# Local CLAUDE.md (may contain actual domains)
-CLAUDE.md
-
 # AWS credentials
 credentials
 config
@@ -108,14 +105,14 @@ logs/
 .tomb-yubikey-verifications.log
 
 # blueprints (development work - not committed to public repo)
-blueprints/*
+blueprints/
 
 # GitHub security summaries
 .github/FORTIFY_SUMMARY.md
 
 # Claude AI agent context (contains actual domains/secrets)
 CLAUDE.md
-.claude/*
+.claude/
 
 # Terraform backend configuration files (may contain sensitive data)
 backend.hcl
