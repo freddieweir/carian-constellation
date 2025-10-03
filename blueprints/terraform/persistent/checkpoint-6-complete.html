@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkpoint 6 Complete - Persistent Infrastructure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0e1a 0%, #1a1f2e 100%);
+            color: #e4e8f1;
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(135deg, #1a1f2e 0%, #141926 100%);
+            border-radius: 20px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            animation: glow 3s infinite;
+        }
+
+        .header h1 {
+            font-size: 3em;
+            background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .header .subtitle {
+            font-size: 1.3em;
+            color: #94a3b8;
+            margin-bottom: 20px;
+        }
+
+        .status-badges {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .badge {
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .badge.success {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .badge.info {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+        }
+
+        .badge.warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .components-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .component-card {
+            background: linear-gradient(135deg, #1a1f2e 0%, #141926 100%);
+            border-radius: 15px;
+            padding: 25px;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s;
+        }
+
+        .component-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(139, 92, 246, 0.4);
+            border-color: rgba(139, 92, 246, 0.5);
+        }
+
+        .component-card h3 {
+            color: #8b5cf6;
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .component-card .icon {
+            font-size: 1.8em;
+        }
+
+        .component-card .description {
+            color: #94a3b8;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+        }
+
+        .component-card ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .component-card li {
+            padding: 6px 0;
+            padding-left: 25px;
+            position: relative;
+            color: #94a3b8;
+            font-size: 0.9em;
+        }
+
+        .component-card li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .files-section {
+            background: linear-gradient(135deg, #1a1f2e 0%, #141926 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .files-section h2 {
+            color: #3b82f6;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 15px;
+        }
+
+        .file-item {
+            background: rgba(26, 31, 46, 0.5);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.3s;
+        }
+
+        .file-item:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .file-item .filename {
+            font-weight: 600;
+            color: #e4e8f1;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 5px;
+        }
+
+        .file-item .lines {
+            color: #64748b;
+            font-size: 0.9em;
+        }
+
+        .file-item .description {
+            color: #94a3b8;
+            font-size: 0.85em;
+            margin-top: 8px;
+        }
+
+        .cost-section {
+            background: linear-gradient(135deg, #1a1f2e 0%, #141926 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .cost-section h2 {
+            color: #10b981;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .cost-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .cost-table th {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .cost-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            color: #94a3b8;
+        }
+
+        .cost-table tr:hover {
+            background: rgba(139, 92, 246, 0.05);
+        }
+
+        .cost-table .total-row {
+            font-weight: 600;
+            color: #e4e8f1;
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .deployment-guide {
+            background: linear-gradient(135deg, #1a1f2e 0%, #141926 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 40px;
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .deployment-guide h2 {
+            color: #f59e0b;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .deployment-guide ol {
+            padding-left: 25px;
+        }
+
+        .deployment-guide li {
+            padding: 10px 0;
+            color: #94a3b8;
+            font-size: 1.05em;
+        }
+
+        .deployment-guide code {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+        }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning-box strong {
+            color: #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ CHECKPOINT 6 COMPLETE!</h1>
+            <div class="subtitle">Persistent Infrastructure - Operators & Controllers</div>
+            <div class="status-badges">
+                <span class="badge success">✓ 9 Files Created</span>
+                <span class="badge info">8 Components Deployed</span>
+                <span class="badge warning">Ready for Applications</span>
+            </div>
+        </div>
+
+        <h2 style="text-align: center; color: #8b5cf6; margin-bottom: 30px; font-size: 2.5em;">
+            🎯 Core Infrastructure Components
+        </h2>
+
+        <div class="components-grid">
+            <div class="component-card">
+                <h3><span class="icon">🚀</span> AWS Load Balancer Controller</h3>
+                <div class="description">Manages Application Load Balancers from Kubernetes Ingress resources</div>
+                <ul>
+                    <li>Automatic ALB creation</li>
+                    <li>SSL/TLS termination</li>
+                    <li>Target group management</li>
+                    <li>Health checks</li>
+                    <li>WAFv2 integration</li>
+                    <li>IRSA for AWS permissions</li>
+                </ul>
+            </div>
+
+            <div class="component-card">
+                <h3><span class="icon">🔐</span> External Secrets Operator</h3>
+                <div class="description">Syncs secrets from AWS Secrets Manager or 1Password</div>
+                <ul>
+                    <li>AWS Secrets Manager integration</li>
+                    <li>1Password Connect support</li>
+                    <li>Automatic secret rotation</li>
+                    <li>ClusterSecretStore configured</li>
+                    <li>ExternalSecret CRDs</li>
+                    <li>IRSA for secure access</li>
+                </ul>
+            </div>
+
+            <div class="component-card">
+                <h3><span class="icon">🔒</span> cert-manager</h3>
+                <div class="description">Automatic TLS certificate management with Let's Encrypt</div>
+                <ul>
+                    <li>HTTP-01 challenge support</li>
+                    <li>DNS-01 for wildcard certs</li>
+                    <li>Staging & production issuers</li>
+                    <li>Auto certificate renewal</li>
+                    <li>Route53 integration</li>
+                    <li>Multiple ClusterIssuers</li>
+                </ul>
+            </div>
+
+            <div class="component-card">
+                <h3><span class="icon">📊</span> Monitoring Stack</h3>
+                <div class="description">Complete observability with Prometheus & Grafana</div>
+                <ul>
+                    <li>Prometheus metrics storage</li>
+                    <li>Grafana dashboards</li>
+                    <li>Alertmanager integration</li>
+                    <li>Node & pod metrics</li>
+                    <li>ServiceMonitor support</li>
+                    <li>15-day retention default</li>
+                </ul>
+            </div>
+
+            <div class="component-card">
+                <h3><span class="icon">📈</span> Metrics Server</h3>
+                <div class="description">Resource metrics API for HPA and kubectl top</div>
+                <ul>
+                    <li>CPU & memory metrics</li>
+                    <li>Horizontal Pod Autoscaler</li>
+                    <li>kubectl top nodes/pods</li>
+                    <li>Required for autoscaling</li>
+                    <li>Low resource overhead</li>
+                </ul>
+            </div>
+
+            <div class="component-card">
+                <h3><span class="icon">⚖️</span> Cluster Autoscaler</h3>
+                <div class="description">Automatic node scaling based on workload</div>
+                <ul>
+                    <li>Auto-scale nodes up/down</li>
+                    <li>Pod resource-based triggers</li>
+                    <li>EKS integration</li>
+                    <li>Cost optimization</li>
+                    <li>Balance similar node groups</li>
+                </ul>
+            </div>
+
+            <div class="component-card">
+                <h3><span class="icon">🔄</span> Reloader</h3>
+                <div class="description">Auto-restart pods on ConfigMap/Secret changes</div>
+                <ul>
+                    <li>Watch all namespaces</li>
+                    <li>No manual restarts needed</li>
+                    <li>Annotation-based triggers</li>
+                    <li>ConfigMap & Secret support</li>
+                    <li>Minimal overhead</li>
+                </ul>
+            </div>
+
+            <div class="component-card">
+                <h3><span class="icon">💾</span> Storage Classes</h3>
+                <div class="description">Multiple storage options for different workloads</div>
+                <ul>
+                    <li>gp3 (default, encrypted)</li>
+                    <li>gp3-high-iops (10K IOPS)</li>
+                    <li>io2-database (retained)</li>
+                    <li>gp3-retain (critical data)</li>
+                    <li>EFS (optional, shared)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="files-section">
+            <h2>📦 Files Created (9 Total)</h2>
+            <div class="file-grid">
+                <div class="file-item">
+                    <div class="filename">main.tf</div>
+                    <div class="lines">~100 lines</div>
+                    <div class="description">Core config, providers, data sources from ephemeral state</div>
+                </div>
+                <div class="file-item">
+                    <div class="filename">variables.tf</div>
+                    <div class="lines">~270 lines</div>
+                    <div class="description">All input variables with defaults and validations</div>
+                </div>
+                <div class="file-item">
+                    <div class="filename">alb-controller.tf</div>
+                    <div class="lines">~390 lines</div>
+                    <div class="description">AWS Load Balancer Controller with IAM IRSA</div>
+                </div>
+                <div class="file-item">
+                    <div class="filename">external-secrets.tf</div>
+                    <div class="lines">~280 lines</div>
+                    <div class="description">External Secrets Operator with ClusterSecretStore</div>
+                </div>
+                <div class="file-item">
+                    <div class="filename">cert-manager.tf</div>
+                    <div class="lines">~420 lines</div>
+                    <div class="description">cert-manager with multiple ClusterIssuers (HTTP, DNS)</div>
+                </div>
+                <div class="file-item">
+                    <div class="filename">monitoring.tf</div>
+                    <div class="lines">~480 lines</div>
+                    <div class="description">Complete Prometheus & Grafana stack with Ingress</div>
+                </div>
+                <div class="file-item">
+                    <div class="filename">cluster-components.tf</div>
+                    <div class="lines">~300 lines</div>
+                    <div class="description">Metrics Server, Cluster Autoscaler, Reloader</div>
+                </div>
+                <div class="file-item">
+                    <div class="filename">storage.tf</div>
+                    <div class="lines">~220 lines</div>
+                    <div class="description">Multiple storage classes for different use cases</div>
+                </div>
+                <div class="file-item">
+                    <div class="filename">outputs.tf</div>
+                    <div class="lines">~280 lines</div>
+                    <div class="description">All outputs with detailed next steps</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cost-section">
+            <h2>💰 Cost Breakdown (Monthly Estimates)</h2>
+            <table class="cost-table">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Configuration</th>
+                        <th>Monthly Cost</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>ALB (per instance)</td>
+                        <td>Application Load Balancer</td>
+                        <td>~$16-25</td>
+                        <td>Created by Ingress resources</td>
+                    </tr>
+                    <tr>
+                        <td>EBS - Prometheus</td>
+                        <td>10 GB gp3</td>
+                        <td>~$0.80</td>
+                        <td>Metrics storage</td>
+                    </tr>
+                    <tr>
+                        <td>EBS - Grafana</td>
+                        <td>5 GB gp3</td>
+                        <td>~$0.40</td>
+                        <td>Dashboard storage</td>
+                    </tr>
+                    <tr>
+                        <td>Data Transfer</td>
+                        <td>Variable</td>
+                        <td>~$10-30</td>
+                        <td>Ingress/egress traffic</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="2"><strong>TOTAL (Single ALB)</strong></td>
+                        <td><strong>~$30-60/month</strong></td>
+                        <td>Minimal setup</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td colspan="2"><strong>TOTAL (Multiple services)</strong></td>
+                        <td><strong>~$50-100/month</strong></td>
+                        <td>Full stack with 2-3 ALBs</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="warning-box">
+                <strong>⚠️  Cost Optimization:</strong> These components should run 24/7 for certificate renewal, metrics collection, and secret sync. However, you can reduce costs by:
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li>Using a single ALB with path-based routing</li>
+                    <li>Reducing Prometheus retention (15d → 7d)</li>
+                    <li>Smaller storage volumes</li>
+                    <li>Disabling optional components</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="deployment-guide">
+            <h2>🚀 Deployment Steps</h2>
+            <ol>
+                <li><strong>Verify Ephemeral Infrastructure:</strong>
+                    <br><code>cd ../ephemeral && terraform output</code>
+                    <br>Ensure EKS cluster is running and accessible
+                </li>
+                
+                <li><strong>Configure Variables:</strong>
+                    <br><code>cp terraform.tfvars.example terraform.tfvars</code>
+                    <br><code>vim terraform.tfvars</code>
+                    <br>Fill in: domain, email, Grafana password, Terraform state bucket
+                </li>
+                
+                <li><strong>Initialize Terraform:</strong>
+                    <br><code>terraform init</code>
+                    <br><code>terraform validate</code>
+                </li>
+                
+                <li><strong>Plan Deployment:</strong>
+                    <br><code>terraform plan</code>
+                    <br>Review all resources to be created (~40-50 resources)
+                </li>
+                
+                <li><strong>Deploy Infrastructure:</strong>
+                    <br><code>terraform apply</code>
+                    <br>Deployment takes ~10-15 minutes
+                </li>
+                
+                <li><strong>Verify Deployment:</strong>
+                    <br><code>kubectl get pods --all-namespaces</code>
+                    <br><code>helm list --all-namespaces</code>
+                    <br><code>kubectl get clusterissuer</code>
+                    <br><code>kubectl get clustersecretstore</code>
+                </li>
+                
+                <li><strong>Access Grafana:</strong>
+                    <br><code>terraform output grafana_url</code>
+                    <br>Login with username <code>admin</code> and your configured password
+                </li>
+                
+                <li><strong>Test TLS Certificates:</strong>
+                    <br>Deploy a test Ingress with cert-manager annotations
+                    <br>Verify certificate is issued (may take 1-2 minutes)
+                </li>
+                
+                <li><strong>Create Secrets in AWS:</strong>
+                    <br><code>aws secretsmanager create-secret --name carian-constellation/app/db-pass --secret-string "password"</code>
+                    <br>Test with ExternalSecret resource
+                </li>
+                
+                <li><strong>Deploy Applications:</strong>
+                    <br>Ready to deploy your workloads!
+                    <br><code>cd ../../kubernetes && kubectl apply -f namespaces/</code>
+                </li>
+            </ol>
+        </div>
+
+        <div style="background: linear-gradient(135deg, #1a1f2e 0%, #141926 100%); border-radius: 15px; padding: 30px; text-align: center; border: 1px solid rgba(139, 92, 246, 0.2);">
+            <h2 style="color: #8b5cf6; margin-bottom: 20px; font-size: 2.5em;">
+                🎉 Infrastructure Complete!
+            </h2>
+            <p style="color: #94a3b8; font-size: 1.2em; margin-bottom: 20px;">
+                You now have a production-grade Kubernetes infrastructure with:
+            </p>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;">
+                <div style="background: rgba(139, 92, 246, 0.1); padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em;">☸️</div>
+                    <div style="color: #e4e8f1; font-weight: 600;">EKS Cluster</div>
+                </div>
+                <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em;">🚀</div>
+                    <div style="color: #e4e8f1; font-weight: 600;">Load Balancers</div>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.1); padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em;">🔐</div>
+                    <div style="color: #e4e8f1; font-weight: 600;">Secret Management</div>
+                </div>
+                <div style="background: rgba(245, 158, 11, 0.1); padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em;">🔒</div>
+                    <div style="color: #e4e8f1; font-weight: 600;">TLS Certificates</div>
+                </div>
+                <div style="background: rgba(139, 92, 246, 0.1); padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em;">📊</div>
+                    <div style="color: #e4e8f1; font-weight: 600;">Monitoring</div>
+                </div>
+                <div style="background: rgba(59, 130, 246, 0.1); padding: 15px; border-radius: 10px;">
+                    <div style="font-size: 2em;">⚖️</div>
+                    <div style="color: #e4e8f1; font-weight: 600;">Auto-scaling</div>
+                </div>
+            </div>
+            <p style="color: #94a3b8; font-size: 1.1em; margin-top: 30px;">
+                <strong style="color: #8b5cf6;">Next:</strong> Deploy your applications (open-webui, perplexica, monitoring dashboards)!
+            </p>
+        </div>
+    </div>
+</body>
+</html>

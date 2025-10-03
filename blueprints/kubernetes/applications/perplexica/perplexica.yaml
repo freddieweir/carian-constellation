@@ -1,0 +1,388 @@
+---
+# ConfigMap for SearXNG configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: searxng-config
+  namespace: carian-apps
+  labels:
+    app: perplexica
+    component: searxng
+data:
+  settings.yml: |
+    use_default_settings: true
+    
+    general:
+      instance_name: "Carian Search"
+      privacypolicy_url: false
+      donation_url: false
+      contact_url: false
+      enable_metrics: true
+    
+    search:
+      safe_search: 0
+      autocomplete: "google"
+      default_lang: "en"
+      formats:
+        - html
+        - json
+    
+    server:
+      port: 8080
+      bind_address: "0.0.0.0"
+      secret_key: "changeme"  # Will be overridden by secret
+      limiter: false
+      image_proxy: true
+    
+    ui:
+      static_use_hash: true
+      default_theme: simple
+      theme_args:
+        simple_style: dark
+    
+    enabled_engines:
+      - google
+      - duckduckgo
+      - bing
+      - wikipedia
+      - github
+      - stackoverflow
+      - reddit
+      - arxiv
+
+---
+# PersistentVolumeClaim for Perplexica data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: perplexica-data
+  namespace: carian-apps
+  labels:
+    app: perplexica
+    component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp3
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# Deployment for SearXNG
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: searxng
+  namespace: carian-apps
+  labels:
+    app: perplexica
+    component: searxng
+  annotations:
+    description: "Meta search engine backend for Perplexica"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: perplexica
+      component: searxng
+  template:
+    metadata:
+      labels:
+        app: perplexica
+        component: searxng
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+      
+      containers:
+        - name: searxng
+          image: searxng/searxng:latest
+          imagePullPolicy: Always
+          
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          
+          env:
+            - name: SEARXNG_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: perplexica-secrets
+                  key: searxng-secret
+            
+            - name: SEARXNG_BASE_URL
+              value: "https://search.yourdomain.com"
+          
+          volumeMounts:
+            - name: config
+              mountPath: /etc/searxng
+              readOnly: true
+          
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          
+          securityContext:
+            runAsUser: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      
+      volumes:
+        - name: config
+          configMap:
+            name: searxng-config
+
+---
+# Service for SearXNG
+apiVersion: v1
+kind: Service
+metadata:
+  name: searxng
+  namespace: carian-apps
+  labels:
+    app: perplexica
+    component: searxng
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP
+  selector:
+    app: perplexica
+    component: searxng
+
+---
+# Deployment for Perplexica
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: perplexica
+  namespace: carian-apps
+  labels:
+    app: perplexica
+    component: frontend
+  annotations:
+    description: "AI-powered search engine"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: perplexica
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: perplexica
+        component: frontend
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+    spec:
+      serviceAccountName: perplexica
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+      
+      containers:
+        - name: perplexica
+          image: itzcrazykns/perplexica:main
+          imagePullPolicy: Always
+          
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          
+          env:
+            # OpenAI configuration
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: perplexica-secrets
+                  key: openai-api-key
+            
+            # SearXNG configuration
+            - name: SEARXNG_API_URL
+              value: "http://searxng.carian-apps.svc.cluster.local:8080"
+            
+            # Application configuration
+            - name: SIMILARITY_MEASURE
+              value: "cosine"
+            
+            - name: CHAT_MODEL_PROVIDER
+              value: "openai"
+            
+            - name: CHAT_MODEL
+              value: "gpt-4o-mini"
+            
+            - name: EMBEDDING_MODEL_PROVIDER
+              value: "openai"
+            
+            - name: EMBEDDING_MODEL
+              value: "text-embedding-3-small"
+          
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+          
+          securityContext:
+            runAsUser: 1000
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+      
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: perplexica-data
+
+---
+# ServiceAccount for Perplexica
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: perplexica
+  namespace: carian-apps
+  labels:
+    app: perplexica
+
+---
+# Service for Perplexica
+apiVersion: v1
+kind: Service
+metadata:
+  name: perplexica
+  namespace: carian-apps
+  labels:
+    app: perplexica
+    component: frontend
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "3000"
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+  selector:
+    app: perplexica
+    component: frontend
+
+---
+# HorizontalPodAutoscaler for Perplexica
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: perplexica
+  namespace: carian-apps
+  labels:
+    app: perplexica
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: perplexica
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# PodDisruptionBudget for Perplexica
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: perplexica
+  namespace: carian-apps
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: perplexica
+      component: frontend

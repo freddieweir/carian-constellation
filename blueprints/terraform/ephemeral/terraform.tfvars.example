@@ -1,0 +1,114 @@
+# Example Terraform Variables for Ephemeral Infrastructure
+# Copy this file to terraform.tfvars and fill in your values
+
+# ============================================================================
+# Project Configuration
+# ============================================================================
+
+project_name = "carian-constellation"
+environment  = "dev"  # Options: dev, staging, production
+
+# ============================================================================
+# AWS Configuration
+# ============================================================================
+
+aws_region   = "us-east-1"
+cluster_name = "constellation"
+
+# ============================================================================
+# Domain Configuration
+# ============================================================================
+
+domain_name = "yourdomain.com"  # Your actual domain
+
+# ============================================================================
+# Owner Information (for tagging)
+# ============================================================================
+
+owner_name      = "stalheim"
+owner_email     = "your.email@example.com"
+github_username = "yourusername"
+
+# ============================================================================
+# Networking
+# ============================================================================
+
+vpc_cidr           = "10.0.0.0/16"
+single_nat_gateway = true  # Cost optimization: single NAT gateway
+
+# Leave empty to auto-select first 2 AZs
+availability_zones = []
+
+# ============================================================================
+# EKS Configuration
+# ============================================================================
+
+kubernetes_version   = "1.28"
+node_instance_types  = ["t3.small"]  # Right-sized for personal use
+node_capacity_type   = "ON_DEMAND"  # Options: ON_DEMAND or SPOT
+node_desired_size    = 2
+node_min_size        = 2
+node_max_size        = 4
+node_disk_size       = 20
+use_spot_instances   = false  # Deprecated: use node_capacity_type = "SPOT" instead
+
+# ============================================================================
+# Security - Tailscale (Zero Trust VPN)
+# ============================================================================
+
+enable_tailscale   = true
+my_tailscale_ip    = "100.x.x.x"  # Get from: tailscale ip -4
+
+# Get ephemeral reusable key from: https://login.tailscale.com/admin/settings/keys
+tailscale_auth_key = "tskey-auth-xxxxx-xxxxx"
+
+tailscale_instance_type = "t3.micro"
+use_tailscale_eip       = false  # Set to true for stable IP address (costs $3.60/month)
+
+# Optional: Whitelist specific IPs for cluster API access (if public endpoint enabled)
+allowed_public_access_cidrs = [
+  # "1.2.3.4/32",  # Your office IP
+  # "5.6.7.8/32",  # Your home IP
+]
+
+# ============================================================================
+# Security - EKS Access
+# ============================================================================
+
+# With Tailscale (recommended):
+enable_private_endpoint = true
+enable_public_endpoint  = false
+
+# Without Tailscale (less secure):
+# enable_private_endpoint = true
+# enable_public_endpoint  = true
+# my_public_ip            = "1.2.3.4"  # Your public IP for whitelisting
+
+# ============================================================================
+# Security - Encryption
+# ============================================================================
+
+enable_cluster_encryption = true
+enable_ebs_encryption     = true
+
+# ============================================================================
+# Monitoring & Logging
+# ============================================================================
+
+enable_cluster_logging = true
+cluster_log_types = [
+  "api",
+  "audit",
+  "authenticator",
+  "controllerManager",
+  "scheduler"
+]
+log_retention_days = 7
+
+# ============================================================================
+# Cost Optimization
+# ============================================================================
+
+# Disable for cost savings
+enable_container_insights = false
+enable_nat_gateway_ha     = false  # Single NAT = cheaper

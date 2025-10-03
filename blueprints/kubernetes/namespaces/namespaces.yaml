@@ -1,0 +1,232 @@
+# ============================================================================
+# Namespaces for Carian Constellation Applications
+# ============================================================================
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: carian-apps
+  labels:
+    name: carian-apps
+    environment: production
+    managed-by: kubectl
+    project: carian-constellation
+    istio-injection: disabled
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    description: "Main application namespace for Carian Constellation services"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: carian-data
+  labels:
+    name: carian-data
+    environment: production
+    managed-by: kubectl
+    project: carian-constellation
+    istio-injection: disabled
+    pod-security.kubernetes.io/enforce: baseline
+  annotations:
+    description: "Data layer namespace for databases and storage services"
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: carian-monitoring
+  labels:
+    name: carian-monitoring
+    environment: production
+    managed-by: kubectl
+    project: carian-constellation
+    istio-injection: disabled
+    pod-security.kubernetes.io/enforce: privileged
+  annotations:
+    description: "Monitoring and observability namespace"
+
+---
+# Resource Quotas for carian-apps namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: carian-apps-quota
+  namespace: carian-apps
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+    persistentvolumeclaims: "10"
+    services.loadbalancers: "3"
+
+---
+# Resource Quotas for carian-data namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: carian-data-quota
+  namespace: carian-data
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    persistentvolumeclaims: "5"
+
+---
+# Limit Range for carian-apps namespace
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: carian-apps-limits
+  namespace: carian-apps
+spec:
+  limits:
+    - max:
+        cpu: "2"
+        memory: 4Gi
+      min:
+        cpu: 100m
+        memory: 128Mi
+      default:
+        cpu: 500m
+        memory: 512Mi
+      defaultRequest:
+        cpu: 250m
+        memory: 256Mi
+      type: Container
+    - max:
+        cpu: "4"
+        memory: 8Gi
+      min:
+        cpu: 500m
+        memory: 512Mi
+      type: Pod
+
+---
+# Limit Range for carian-data namespace
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: carian-data-limits
+  namespace: carian-data
+spec:
+  limits:
+    - max:
+        cpu: "2"
+        memory: 4Gi
+      min:
+        cpu: 100m
+        memory: 256Mi
+      default:
+        cpu: 500m
+        memory: 1Gi
+      defaultRequest:
+        cpu: 250m
+        memory: 512Mi
+      type: Container
+    - max:
+        cpu: "4"
+        memory: 8Gi
+      min:
+        cpu: 500m
+        memory: 1Gi
+      type: Pod
+
+---
+# Network Policy for carian-apps - Allow traffic from ingress and within namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-and-internal
+  namespace: carian-apps
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from ALB/Ingress Controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+    # Allow within namespace
+    - from:
+        - podSelector: {}
+    # Allow from monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: carian-monitoring
+  egress:
+    # Allow to carian-data namespace (databases)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: carian-data
+    # Allow within namespace
+    - to:
+        - podSelector: {}
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow external HTTPS (for API calls)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+
+---
+# Network Policy for carian-data - Allow only from carian-apps
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-from-apps-only
+  namespace: carian-data
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow from carian-apps namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: carian-apps
+    # Allow within namespace
+    - from:
+        - podSelector: {}
+    # Allow from monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: carian-monitoring
+  egress:
+    # Allow within namespace
+    - to:
+        - podSelector: {}
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
