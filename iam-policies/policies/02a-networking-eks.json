@@ -1,0 +1,139 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "EKSListOperations",
+      "Effect": "Allow",
+      "Action": [
+        "eks:ListClusters",
+        "eks:ListNodegroups",
+        "eks:ListAddons",
+        "eks:DescribeAddonVersions"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EKSClusterManagement",
+      "Effect": "Allow",
+      "Action": [
+        "eks:CreateCluster",
+        "eks:DescribeCluster",
+        "eks:UpdateClusterVersion",
+        "eks:UpdateClusterConfig",
+        "eks:DeleteCluster",
+        "eks:TagResource",
+        "eks:UntagResource",
+        "eks:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:eks:*:*:cluster/constellation-*"
+    },
+    {
+      "Sid": "EKSNodeGroupManagement",
+      "Effect": "Allow",
+      "Action": [
+        "eks:CreateNodegroup",
+        "eks:DescribeNodegroup",
+        "eks:UpdateNodegroupConfig",
+        "eks:DeleteNodegroup"
+      ],
+      "Resource": "arn:aws:eks:*:*:nodegroup/constellation-*/*/*"
+    },
+    {
+      "Sid": "EKSAddonManagement",
+      "Effect": "Allow",
+      "Action": [
+        "eks:CreateAddon",
+        "eks:DescribeAddon",
+        "eks:UpdateAddon",
+        "eks:DeleteAddon"
+      ],
+      "Resource": "arn:aws:eks:*:*:addon/constellation-*/*/*"
+    },
+    {
+      "Sid": "VPCManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateVpc",
+        "ec2:DescribeVpcs",
+        "ec2:ModifyVpcAttribute",
+        "ec2:DeleteVpc",
+        "ec2:CreateSubnet",
+        "ec2:DescribeSubnets",
+        "ec2:ModifySubnetAttribute",
+        "ec2:DeleteSubnet",
+        "ec2:CreateRouteTable",
+        "ec2:DescribeRouteTables",
+        "ec2:AssociateRouteTable",
+        "ec2:DisassociateRouteTable",
+        "ec2:DeleteRouteTable",
+        "ec2:CreateRoute",
+        "ec2:DeleteRoute",
+        "ec2:CreateInternetGateway",
+        "ec2:DescribeInternetGateways",
+        "ec2:AttachInternetGateway",
+        "ec2:DetachInternetGateway",
+        "ec2:DeleteInternetGateway",
+        "ec2:CreateNatGateway",
+        "ec2:DescribeNatGateways",
+        "ec2:DeleteNatGateway",
+        "ec2:AllocateAddress",
+        "ec2:DescribeAddresses",
+        "ec2:ReleaseAddress"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SecurityGroupManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateSecurityGroup",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSecurityGroupRules",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:DeleteSecurityGroup",
+        "ec2:ModifySecurityGroupRules"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "EC2NetworkInterfaceManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DeleteNetworkInterface",
+        "ec2:ModifyNetworkInterfaceAttribute",
+        "ec2:AttachNetworkInterface",
+        "ec2:DetachNetworkInterface"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "IAMOIDCProviderManagement",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateOpenIDConnectProvider",
+        "iam:GetOpenIDConnectProvider",
+        "iam:TagOpenIDConnectProvider",
+        "iam:DeleteOpenIDConnectProvider",
+        "iam:UpdateOpenIDConnectProviderThumbprint"
+      ],
+      "Resource": "arn:aws:iam::*:oidc-provider/*"
+    },
+    {
+      "Sid": "CloudWatchLogging",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DescribeLogGroups",
+        "logs:PutRetentionPolicy",
+        "logs:DeleteLogGroup",
+        "logs:TagLogGroup"
+      ],
+      "Resource": "arn:aws:logs:*:*:log-group:/aws/eks/constellation-*"
+    }
+  ]
+}
