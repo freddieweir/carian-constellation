@@ -146,3 +146,7 @@ scripts/**/*.log
 # Private notes (personal interview prep, strategy, etc.)
 notes/
 !notes/README.md
+
+# Task tracking and internal documentation (private planning)
+/docs/
+documentation
